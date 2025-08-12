@@ -8,6 +8,7 @@ class Settings():
     rule34_url: Optional[str] = os.getenv("RULE34_URL")
     danbooru_url: Optional[str] = os.getenv("DANBOORU_URL")
     safebooru_url: Optional[str] = os.getenv("SAFEBOORU_URL")
+    konachan_url: Optional[str] = os.getenv("KONACHAN_URL")
     bot_token: str = os.getenv("BOT_TOKEN")
 
 

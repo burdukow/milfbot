@@ -12,7 +12,7 @@ from aiogram.types import (
     InlineQueryResultVideo,
 )
 
-from services import rule34_service, danbooru_service, safebooru_service
+from services import rule34_service, danbooru_service, safebooru_service, konachan_service
 
 sys.path.append("..")
 router = Router()
@@ -21,6 +21,7 @@ RANDOM_URLS = {
     "r34": "https://rule34.xxx/index.php?page=post&s=random",
     "danbooru": "https://danbooru.donmai.us/posts/random",
     "safebooru": "https://safebooru.org/index.php?page=post&s=random",
+    "kona": "https://konachan.net/post.json?limit=1&tags=order%3Arandom",
 }
 
 
@@ -94,42 +95,48 @@ async def get_post_id_from_redirect(session, url: str, service_name: str) -> str
 
 @router.inline_query(F.query.strip().lower() == "random")
 async def send_random_media(inline_query: InlineQuery):
-    
     chosen_service = random.choice(list(RANDOM_URLS.keys()))
-    
     random_url = RANDOM_URLS[chosen_service]
-    
-    async with aiohttp.ClientSession() as session:
-        post_id = await get_post_id_from_redirect(session, random_url, chosen_service)
-
-    if not post_id:
-        await inline_query.answer([], cache_time=0, is_personal=True)
-        return
 
     try:
+        async with aiohttp.ClientSession() as session:
+            if chosen_service == "kona":
+                async with session.get(random_url) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        if not data:
+                            await inline_query.answer([], cache_time=0, is_personal=True)
+                            return
+                        post_id = data[0].get("id")
+                    else:
+                        post_id = None
+            else:
+                post_id = await get_post_id_from_redirect(session, random_url, chosen_service)
+
+        if not post_id:
+            await inline_query.answer([], cache_time=0, is_personal=True)
+            return
+
         service_map = {
             "r34": rule34_service.get_post_list,
             "danbooru": danbooru_service.get_post_list,
             "safebooru": safebooru_service.get_post_list,
+            "kona": lambda **kwargs: konachan_service.get_post_list(**kwargs, nsfw=False),
         }
+
         response_data = await service_map[chosen_service](tags=f"id:{post_id}", limit=1)
-    except Exception as e:
-        await inline_query.answer([], cache_time=0, is_personal=True)
-        return
-        
-    if not response_data:
-        await inline_query.answer([], cache_time=0, is_personal=True)
-        return
-    
-    processed_item = _process_item(response_data[0], chosen_service)
-    
-    if not processed_item:
-        await inline_query.answer([], cache_time=0, is_personal=True)
-        return
 
-    results = [processed_item]
+        if not response_data:
+            await inline_query.answer([], cache_time=0, is_personal=True)
+            return
 
-    try:
-        await inline_query.answer(results=results, cache_time=0, is_personal=True)
+        processed_item = _process_item(response_data[0], chosen_service)
+        if not processed_item:
+            await inline_query.answer([], cache_time=0, is_personal=True)
+            return
+
+        await inline_query.answer([processed_item], cache_time=0, is_personal=True)
+
     except Exception as e:
-        print(f"[FATAL] Telegram API Error on answering query: {e}")
+        print(f"[FATAL] Error in send_random_media: {e}")
+        await inline_query.answer([], cache_time=0, is_personal=True)
