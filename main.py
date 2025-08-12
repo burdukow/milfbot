@@ -16,15 +16,16 @@ async def main():
     async def get_guide_text():
         username = (await bot.me()).username if hasattr(bot, "me") else "YOURBOT"
         return (
-            "*How to use this bot:*\n\n"
-            f"Just type in any chat:\n`@{username} pic r34 cat`\n"
-            f"Or:\n`@{username} gif danbooru neko`\n\n"
-            "*You can use:*\n"
-            "`pic`, `gif`, `vid` and `r34`, `danbooru`, `safebooru` as sources\.\n\n"
-            "*Example:*\n"
-            f"`@{username} pic r34 cat`\n\n"
-            "_Note: Danbooru restricts tag searches for users without an upgraded account\. Only one tag per search unless you have a gold danbooru profile\._"
+            r"*How to use this bot:*\n\n"
+            rf"Just type in any chat:\n`@{username} pic r34 cat`\n"
+            rf"Or:\n`@{username} gif danbooru neko`\n\n"
+            r"*You can use:*\n"
+            r"`pic`, `gif`, `vid` and `r34`, `danbooru`, `safebooru` as sources\.\n\n"
+            r"*Example:*\n"
+            rf"`@{username} pic r34 cat`\n\n"
+            r"_Note: Danbooru restricts tag searches for users without an upgraded account\. Only one tag per search unless you have a gold danbooru profile\._"
         )
+
 
     @dp.message()
     async def guide_message(message):
